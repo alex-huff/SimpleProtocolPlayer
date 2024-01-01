@@ -46,4 +46,6 @@
   <string name="usePerformanceMode">Performance mode</string>
   <string name="useMinBuffer">Min AudioTrack buffer</string>
   <string name="error">Error</string>
+  <string name="authenticationKey">Authentication key</string>
+  <string name="authenticationKeyHint">Key</string>
 </resources>

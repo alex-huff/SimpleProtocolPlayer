@@ -418,6 +418,11 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
       Log.d(TAG, "port:" + audioPort);
       i.putExtra(MusicService.DATA_AUDIO_PORT, audioPort);
 
+      // Extract authentication key
+      EditText editTextAuthenticationKey = findViewById(R.id.editTextAuthenticationKey);
+      String authenticationKey = editTextAuthenticationKey.getText().toString();
+      i.putExtra(MusicService.DATA_AUTHENTICATION_KEY, authenticationKey);
+
       // Extract sample rate
       Spinner sampleRateSpinner = findViewById(R.id.spinnerSampleRate);
       String rateStr = String.valueOf(sampleRateSpinner.getSelectedItem());
@@ -443,8 +448,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
       Log.i(TAG, "stereo:" + stereo);
 
       // Get the latest buffer entry
-      EditText e = findViewById(R.id.editTextBufferSize);
-      String bufferMsString = e.getText().toString();
+      EditText editTextBufferSize = findViewById(R.id.editTextBufferSize);
+      String bufferMsString = editTextBufferSize.getText().toString();
       try {
         bufferMs = Integer.parseInt(bufferMsString);
         Log.d(TAG, "buffer ms:" + bufferMs);

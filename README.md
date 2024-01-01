@@ -1,5 +1,7 @@
 # Simple Protocol Player
 
+A fork that adds authentication and encryption when paired with [protocol-simple-proxy](https://gitlab.com/alex-huff/protocol-simple-proxy)
+
 ## Links:
 
 #### Play store

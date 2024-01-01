@@ -28,8 +28,11 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
+
 import androidx.core.app.NotificationCompat;
 import java.util.ArrayList;
+import java.util.Base64;
 
 /**
  * Service that handles media playback. This is the Service through which we
@@ -60,6 +63,7 @@ public class MusicService extends Service implements MusicFocusable {
 
   public static final String DATA_IP_ADDRESS = "ip_addr";
   public static final String DATA_AUDIO_PORT = "audio_port";
+  public static final String DATA_AUTHENTICATION_KEY = "authentication_key";
   public static final String DATA_SAMPLE_RATE = "sample_rate";
   public static final String DATA_STEREO = "stereo";
   public static final String DATA_BUFFER_MS = "buffer_ms";
@@ -148,16 +152,23 @@ public class MusicService extends Service implements MusicFocusable {
     } else {
       stopWorkers();
     }
-
+    byte[] authenticationKey;
+    try {
+       authenticationKey = Base64.getDecoder().decode(i.getStringExtra(DATA_AUTHENTICATION_KEY));
+    } catch (IllegalArgumentException illegalArgumentException) {
+      Toast.makeText(getApplicationContext(), "Invalid base64 key", Toast.LENGTH_SHORT).show();
+      return;
+    }
     playStream(i.getStringExtra(DATA_IP_ADDRESS),
-        i.getIntExtra(DATA_AUDIO_PORT, DEFAULT_AUDIO_PORT),
-        i.getIntExtra(DATA_SAMPLE_RATE, DEFAULT_SAMPLE_RATE),
-        i.getBooleanExtra(DATA_STEREO, DEFAULT_STEREO),
-        i.getIntExtra(DATA_BUFFER_MS, DEFAULT_BUFFER_MS),
-        i.getBooleanExtra(DATA_RETRY, DEFAULT_RETRY),
-        i.getBooleanExtra(DATA_USE_PERFORMANCE_MODE,
-            DEFAULT_USE_PERFORMANCE_MODE),
-        i.getBooleanExtra(DATA_USE_MIN_BUFFER, DEFAULT_USE_MIN_BUFFER));
+            i.getIntExtra(DATA_AUDIO_PORT, DEFAULT_AUDIO_PORT),
+            authenticationKey,
+            i.getIntExtra(DATA_SAMPLE_RATE, DEFAULT_SAMPLE_RATE),
+            i.getBooleanExtra(DATA_STEREO, DEFAULT_STEREO),
+            i.getIntExtra(DATA_BUFFER_MS, DEFAULT_BUFFER_MS),
+            i.getBooleanExtra(DATA_RETRY, DEFAULT_RETRY),
+            i.getBooleanExtra(DATA_USE_PERFORMANCE_MODE,
+                    DEFAULT_USE_PERFORMANCE_MODE),
+            i.getBooleanExtra(DATA_USE_MIN_BUFFER, DEFAULT_USE_MIN_BUFFER));
   }
 
   void processStopRequest() {
@@ -245,7 +256,7 @@ public class MusicService extends Service implements MusicFocusable {
   /**
    * Play the stream using the given IP address and port
    */
-  void playStream(String serverAddr, int serverPort, int sample_rate,
+  void playStream(String serverAddr, int serverPort, byte[] authenticationKey, int sample_rate,
       boolean stereo, int buffer_ms, boolean retry, boolean usePerformanceMode,
       boolean useMinBuffer) {
 
@@ -253,7 +264,7 @@ public class MusicService extends Service implements MusicFocusable {
     relaxResources();
 
     workers.add(
-        new WorkerThreadPair(this, serverAddr, serverPort, sample_rate, stereo,
+        new WorkerThreadPair(this, serverAddr, serverPort, authenticationKey, sample_rate, stereo,
             buffer_ms, retry, usePerformanceMode, useMinBuffer));
 
     mWifiLock.acquire();
