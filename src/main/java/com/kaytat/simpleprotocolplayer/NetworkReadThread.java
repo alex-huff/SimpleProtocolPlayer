@@ -25,17 +25,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.security.KeyFactory;
-import java.security.PublicKey;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  * Worker thread reads data from the network
@@ -139,41 +131,15 @@ class NetworkReadThread extends ThreadStoppable {
 
         try {
             // Create the TCP socket and setup some parameters
-            socket = new Socket(ipAddr, port);
+            Log.i(TAG, "running");
+            SocketFactory sslSocketFactory = SSLSocketFactory.getDefault();
+            socket = sslSocketFactory.createSocket(ipAddr, port);
+            socket.setSoTimeout(SOCKET_TIMEOUT);
+            socket.setTcpNoDelay(true);
             BufferedInputStream bufferedInputStream = new BufferedInputStream(socket.getInputStream());
             BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(socket.getOutputStream());
             DataInputStream dataInputStream = new DataInputStream(bufferedInputStream);
             DataOutputStream dataOutputStream = new DataOutputStream(bufferedOutputStream);
-            socket.setSoTimeout(SOCKET_TIMEOUT);
-            socket.setTcpNoDelay(true);
-
-            Log.i(TAG, "running");
-
-            int publicKeyBytesLength = dataInputStream.readInt();
-            byte[] publicKeyBytes = new byte[publicKeyBytesLength];
-            dataInputStream.readFully(publicKeyBytes);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
-            PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
-            KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
-            keyGenerator.init(128);
-            SecretKey secretKey = keyGenerator.generateKey();
-            byte[] secretKeyBytes = secretKey.getEncoded();
-            Cipher publicKeyEncryptCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-            publicKeyEncryptCipher.init(Cipher.ENCRYPT_MODE, publicKey);
-            byte[] encryptedSecretKeyBytes = publicKeyEncryptCipher.doFinal(secretKeyBytes);
-            dataOutputStream.writeInt(encryptedSecretKeyBytes.length);
-            dataOutputStream.write(encryptedSecretKeyBytes);
-            dataOutputStream.flush();
-            IvParameterSpec parameterSpec = new IvParameterSpec(secretKeyBytes);
-            Cipher decryptCipher = Cipher.getInstance("AES/CFB8/NoPadding");
-            Cipher encryptCipher = Cipher.getInstance("AES/CFB8/NoPadding");
-            decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
-            encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
-            CipherInputStream cipherInputStream = new CipherInputStream(bufferedInputStream, decryptCipher);
-            CipherOutputStream cipherOutputStream = new CipherOutputStream(bufferedOutputStream, encryptCipher);
-            dataInputStream = new DataInputStream(cipherInputStream);
-            dataOutputStream = new DataOutputStream(cipherOutputStream);
             dataOutputStream.writeInt(authenticationKey.length);
             dataOutputStream.write(authenticationKey);
             dataOutputStream.writeInt(syncObject.bytesPerAudioPacket);
